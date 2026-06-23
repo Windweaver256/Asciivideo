@@ -1,0 +1,567 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GitHub Pages Video to Color ASCII</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --panel: rgba(12, 14, 22, 0.92);
+      --edge: rgba(255, 255, 255, 0.14);
+      --hot: #63f7ff;
+      --warn: #ffdd57;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 10%, rgba(0, 255, 255, 0.16), transparent 28rem),
+        radial-gradient(circle at 80% 5%, rgba(255, 0, 170, 0.18), transparent 30rem),
+        radial-gradient(circle at 50% 100%, rgba(120, 255, 0, 0.13), transparent 30rem),
+        #030409;
+      color: #f7fbff;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      overflow: hidden;
+    }
+
+    body {
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 0.75rem;
+      padding: 0.85rem;
+      border-bottom: 1px solid var(--edge);
+      background: linear-gradient(180deg, rgba(7, 9, 16, 0.96), rgba(7, 9, 16, 0.82));
+      box-shadow: 0 1rem 4rem rgba(0, 0, 0, 0.35);
+      backdrop-filter: blur(18px);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2vw, 1.75rem);
+      letter-spacing: -0.04em;
+      line-height: 1.05;
+    }
+
+    h1 span {
+      color: var(--hot);
+      text-shadow: 0 0 1.5rem rgba(99, 247, 255, 0.75);
+    }
+
+    .subtitle {
+      margin: 0.2rem 0 0;
+      max-width: 85rem;
+      color: rgba(247, 251, 255, 0.78);
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 0.65rem;
+      align-items: end;
+    }
+
+    .control {
+      min-width: 0;
+      display: grid;
+      gap: 0.32rem;
+      grid-column: span 2;
+    }
+
+    .control.wide { grid-column: span 3; }
+    .control.file { grid-column: span 4; }
+    .control.buttons { grid-column: span 3; }
+
+    label,
+    output {
+      color: rgba(247, 251, 255, 0.82);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      min-height: 2.35rem;
+      border: 1px solid var(--edge);
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.07);
+      color: #fff;
+      font: inherit;
+      accent-color: var(--hot);
+    }
+
+    input[type="file"] { padding: 0.52rem; }
+    input[type="range"] { min-height: 1.8rem; }
+    select { padding: 0 0.6rem; }
+
+    button {
+      cursor: pointer;
+      font-weight: 800;
+      background: linear-gradient(135deg, rgba(99, 247, 255, 0.28), rgba(255, 0, 170, 0.22));
+      transition: transform 160ms ease, border-color 160ms ease, filter 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(99, 247, 255, 0.75);
+      filter: brightness(1.15);
+    }
+
+    button:disabled,
+    input:disabled,
+    select:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .button-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.45rem;
+    }
+
+    .status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      color: rgba(247, 251, 255, 0.8);
+      font-size: 0.78rem;
+    }
+
+    .pill {
+      border: 1px solid var(--edge);
+      border-radius: 99rem;
+      padding: 0.25rem 0.55rem;
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    .pill.warn {
+      color: var(--warn);
+      border-color: rgba(255, 221, 87, 0.35);
+      background: rgba(255, 221, 87, 0.08);
+    }
+
+    main {
+      position: relative;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    #asciiOutput {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0.5rem;
+      overflow: auto;
+      background: #000;
+      color: #fff;
+      font-family: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      font-size: var(--ascii-size, 3px);
+      line-height: var(--ascii-line, 3px);
+      letter-spacing: -0.055em;
+      white-space: pre;
+      tab-size: 1;
+      text-rendering: geometricPrecision;
+      contain: strict;
+      transform-origin: top left;
+    }
+
+    #asciiOutput span {
+      font: inherit;
+      text-shadow: 0 0 0.22em currentColor;
+    }
+
+    .drop-hint {
+      position: absolute;
+      inset: 50% auto auto 50%;
+      width: min(42rem, calc(100vw - 2rem));
+      transform: translate(-50%, -50%);
+      padding: 1.5rem;
+      border: 1px dashed rgba(99, 247, 255, 0.35);
+      border-radius: 1.25rem;
+      background: rgba(5, 8, 14, 0.82);
+      text-align: center;
+      pointer-events: none;
+      box-shadow: 0 2rem 8rem rgba(0, 0, 0, 0.55);
+    }
+
+    .drop-hint strong {
+      display: block;
+      margin-bottom: 0.45rem;
+      color: #fff;
+      font-size: 1.2rem;
+    }
+
+    .drop-hint small {
+      color: rgba(247, 251, 255, 0.7);
+      line-height: 1.45;
+    }
+
+    video,
+    canvas { display: none; }
+
+    @media (max-width: 1100px) {
+      body { overflow: auto; }
+      .controls { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+      .control,
+      .control.wide,
+      .control.file,
+      .control.buttons { grid-column: span 3; }
+      main { min-height: 75vh; }
+    }
+
+    @media (max-width: 640px) {
+      .controls { grid-template-columns: 1fr; }
+      .control,
+      .control.wide,
+      .control.file,
+      .control.buttons { grid-column: span 1; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Vibrant <span>Video → Color ASCII</span></h1>
+      <p class="subtitle">
+        GitHub Pages-ready static HTML app. Your video stays local in this browser. It targets colorful 4K / 60 FPS output when your device can keep up, with adaptive rendering to avoid freezing.
+      </p>
+    </div>
+
+    <section class="controls" aria-label="ASCII video controls">
+      <div class="control file">
+        <label for="videoFile">Upload video</label>
+        <input id="videoFile" type="file" accept="video/*" />
+      </div>
+
+      <div class="control">
+        <label for="quality">Detail</label>
+        <select id="quality">
+          <option value="auto" selected>Adaptive 4K</option>
+          <option value="native">Native / 4K heavy</option>
+          <option value="1080">1080p friendly</option>
+          <option value="720">720p fast</option>
+          <option value="480">480p turbo</option>
+        </select>
+      </div>
+
+      <div class="control">
+        <label for="fps">FPS target: <output id="fpsValue">60</output></label>
+        <input id="fps" type="range" min="12" max="60" step="1" value="60" />
+      </div>
+
+      <div class="control">
+        <label for="fontSize">Char size: <output id="fontSizeValue">3</output>px</label>
+        <input id="fontSize" type="range" min="2" max="9" step="1" value="3" />
+      </div>
+
+      <div class="control">
+        <label for="brightness">Brightness: <output id="brightnessValue">190</output>%</label>
+        <input id="brightness" type="range" min="100" max="260" step="5" value="190" />
+      </div>
+
+      <div class="control">
+        <label for="vibrance">Vibrance: <output id="vibranceValue">220</output>%</label>
+        <input id="vibrance" type="range" min="100" max="300" step="5" value="220" />
+      </div>
+
+      <div class="control wide">
+        <label for="density">ASCII density: <output id="densityValue">High</output></label>
+        <input id="density" type="range" min="1" max="4" step="1" value="4" />
+      </div>
+
+      <div class="control buttons">
+        <label>Playback</label>
+        <div class="button-row">
+          <button id="playPause" type="button" disabled>Play</button>
+          <button id="fullscreen" type="button">Fullscreen</button>
+        </div>
+      </div>
+    </section>
+
+    <div class="status" aria-live="polite">
+      <span id="videoStats" class="pill">No video loaded</span>
+      <span id="renderStats" class="pill">Waiting</span>
+      <span class="pill warn">GitHub Pages deploy: put this file at the repo root and enable Pages from the main branch. Per-character 4K color ASCII is GPU/CPU heavy; lower detail if frames drop.</span>
+    </div>
+  </header>
+
+  <main>
+    <pre id="asciiOutput" aria-label="Color ASCII video output"></pre>
+    <div id="dropHint" class="drop-hint">
+      <strong>Drop or upload a video</strong>
+      <small>For the brightest, most vibrant result this app boosts color and luminance before mapping pixels to tiny colored ASCII characters.</small>
+    </div>
+    <video id="video" playsinline muted loop></video>
+    <canvas id="canvas"></canvas>
+  </main>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const fileInput = document.getElementById("videoFile");
+      const qualityInput = document.getElementById("quality");
+      const fpsInput = document.getElementById("fps");
+      const fontSizeInput = document.getElementById("fontSize");
+      const brightnessInput = document.getElementById("brightness");
+      const vibranceInput = document.getElementById("vibrance");
+      const densityInput = document.getElementById("density");
+      const playPauseButton = document.getElementById("playPause");
+      const fullscreenButton = document.getElementById("fullscreen");
+      const fpsValue = document.getElementById("fpsValue");
+      const fontSizeValue = document.getElementById("fontSizeValue");
+      const brightnessValue = document.getElementById("brightnessValue");
+      const vibranceValue = document.getElementById("vibranceValue");
+      const densityValue = document.getElementById("densityValue");
+      const videoStats = document.getElementById("videoStats");
+      const renderStats = document.getElementById("renderStats");
+      const output = document.getElementById("asciiOutput");
+      const dropHint = document.getElementById("dropHint");
+      const video = document.getElementById("video");
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true, alpha: false });
+
+      const ramps = [
+        "@#%*+=-:. ",
+        "@MW&8%B$0ZXYUJCLtfjzxnuvcr/\\|()1{}[]?-_+~<>i!lI;:,^'. ",
+        "█▓▒░@#MW&8%B$QO0ZXYUJCLtfjzxnuvcr/\\|()1{}[]?-_+~<>i!lI;:,\"^'. ",
+        "█▉▊▋▌▍▎▏@#MW&8%B$QO0ZXYUJCLtfjzxnuvcr/\\|()1{}[]?-_+~<>i!lI;:,\"^'.  "
+      ];
+
+      let objectUrl = "";
+      let animationId = 0;
+      let lastRender = 0;
+      let renderedFrames = 0;
+      let droppedFrames = 0;
+      let statsStarted = performance.now();
+      let currentFontSize = Number(fontSizeInput.value);
+
+      const clamp = (value, min = 0, max = 255) => Math.max(min, Math.min(max, value));
+      const escapeHtml = (value) => value === "&" ? "&amp;" : value === "<" ? "&lt;" : value === ">" ? "&gt;" : value === '"' ? "&quot;" : value;
+
+      function syncControlLabels() {
+        fpsValue.value = fpsInput.value;
+        fontSizeValue.value = fontSizeInput.value;
+        brightnessValue.value = brightnessInput.value;
+        vibranceValue.value = vibranceInput.value;
+        densityValue.value = ["Low", "Medium", "High", "Extreme"][Number(densityInput.value) - 1];
+        currentFontSize = Number(fontSizeInput.value);
+        output.style.setProperty("--ascii-size", `${currentFontSize}px`);
+        output.style.setProperty("--ascii-line", `${currentFontSize}px`);
+      }
+
+      function chooseRenderSize() {
+        const sourceWidth = video.videoWidth || 1920;
+        const sourceHeight = video.videoHeight || 1080;
+        const mode = qualityInput.value;
+        const charAspect = 0.48;
+        const screenCharsWide = Math.max(96, Math.floor(window.innerWidth / Math.max(2, currentFontSize * 0.58)));
+        const screenCharsHigh = Math.max(54, Math.floor(window.innerHeight / Math.max(2, currentFontSize)));
+        let maxWidth;
+
+        if (mode === "native") maxWidth = sourceWidth;
+        else if (mode === "1080") maxWidth = Math.min(sourceWidth, 1920);
+        else if (mode === "720") maxWidth = Math.min(sourceWidth, 1280);
+        else if (mode === "480") maxWidth = Math.min(sourceWidth, 854);
+        else maxWidth = Math.min(sourceWidth, Math.max(320, screenCharsWide));
+
+        const densityBoost = [0.7, 0.9, 1.15, 1.38][Number(densityInput.value) - 1];
+        let asciiWidth = Math.min(sourceWidth, Math.floor(maxWidth * densityBoost));
+        let asciiHeight = Math.floor(asciiWidth * (sourceHeight / sourceWidth) * charAspect);
+
+        if (qualityInput.value === "auto") {
+          asciiHeight = Math.min(asciiHeight, Math.floor(screenCharsHigh * 1.25));
+          asciiWidth = Math.floor(asciiHeight / (sourceHeight / sourceWidth) / charAspect);
+        }
+
+        return {
+          width: Math.max(24, asciiWidth),
+          height: Math.max(12, asciiHeight)
+        };
+      }
+
+      function boostedRgb(r, g, b) {
+        const brightness = Number(brightnessInput.value) / 100;
+        const vibrance = Number(vibranceInput.value) / 100;
+        const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+        const boostedR = clamp(luminance + (r - luminance) * vibrance);
+        const boostedG = clamp(luminance + (g - luminance) * vibrance);
+        const boostedB = clamp(luminance + (b - luminance) * vibrance);
+
+        return [
+          clamp(boostedR * brightness),
+          clamp(boostedG * brightness),
+          clamp(boostedB * brightness)
+        ];
+      }
+
+      function renderFrame(now) {
+        if (!video.paused && !video.ended) {
+          const targetInterval = 1000 / Number(fpsInput.value);
+          if (now - lastRender >= targetInterval) {
+            const started = performance.now();
+            drawAsciiFrame();
+            const renderMs = performance.now() - started;
+            renderedFrames++;
+            if (renderMs > targetInterval) droppedFrames += Math.max(1, Math.round(renderMs / targetInterval) - 1);
+            lastRender = now;
+            updateRenderStats(renderMs);
+          }
+          animationId = requestAnimationFrame(renderFrame);
+        }
+      }
+
+      function drawAsciiFrame() {
+        if (!video.videoWidth || !video.videoHeight) return;
+
+        const size = chooseRenderSize();
+        if (canvas.width !== size.width || canvas.height !== size.height) {
+          canvas.width = size.width;
+          canvas.height = size.height;
+        }
+
+        ctx.drawImage(video, 0, 0, size.width, size.height);
+        const pixels = ctx.getImageData(0, 0, size.width, size.height).data;
+        const ramp = ramps[Number(densityInput.value) - 1];
+        const rampMax = ramp.length - 1;
+        const html = [];
+
+        for (let y = 0; y < size.height; y++) {
+          let lastColor = "";
+          for (let x = 0; x < size.width; x++) {
+            const index = (y * size.width + x) * 4;
+            const [r, g, b] = boostedRgb(pixels[index], pixels[index + 1], pixels[index + 2]);
+            const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            const char = escapeHtml(ramp[Math.round((1 - luminance / 255) * rampMax)] || " ");
+            const color = `${r | 0},${g | 0},${b | 0}`;
+            if (color !== lastColor) {
+              if (lastColor) html.push("</span>");
+              html.push(`<span style="color:rgb(${color})">`);
+              lastColor = color;
+            }
+            html.push(char);
+          }
+          if (lastColor) html.push("</span>");
+          html.push("\n");
+        }
+
+        output.innerHTML = html.join("");
+      }
+
+      function updateRenderStats(renderMs = 0) {
+        const elapsed = Math.max(1, (performance.now() - statsStarted) / 1000);
+        const actualFps = renderedFrames / elapsed;
+        const size = `${canvas.width || 0}×${canvas.height || 0} chars`;
+        renderStats.textContent = `${actualFps.toFixed(1)} FPS · ${renderMs.toFixed(1)}ms · ${size} · dropped estimate ${droppedFrames}`;
+      }
+
+      function resetStats() {
+        renderedFrames = 0;
+        droppedFrames = 0;
+        statsStarted = performance.now();
+        lastRender = 0;
+        updateRenderStats();
+      }
+
+      async function loadFile(file) {
+        if (!file) return;
+        cancelAnimationFrame(animationId);
+        if (objectUrl) URL.revokeObjectURL(objectUrl);
+        objectUrl = URL.createObjectURL(file);
+        video.src = objectUrl;
+        video.load();
+        dropHint.style.display = "none";
+        playPauseButton.disabled = true;
+        playPauseButton.textContent = "Loading";
+        output.textContent = "Loading video metadata…";
+      }
+
+      function startLoop() {
+        cancelAnimationFrame(animationId);
+        resetStats();
+        animationId = requestAnimationFrame(renderFrame);
+      }
+
+      fileInput.addEventListener("change", () => loadFile(fileInput.files[0]));
+
+      video.addEventListener("loadedmetadata", () => {
+        const width = video.videoWidth.toLocaleString();
+        const height = video.videoHeight.toLocaleString();
+        const duration = Number.isFinite(video.duration) ? `${video.duration.toFixed(1)}s` : "stream";
+        videoStats.textContent = `${width}×${height} · ${duration}`;
+        playPauseButton.disabled = false;
+        playPauseButton.textContent = "Play";
+        drawAsciiFrame();
+        updateRenderStats();
+      });
+
+      video.addEventListener("play", () => {
+        playPauseButton.textContent = "Pause";
+        startLoop();
+      });
+
+      video.addEventListener("pause", () => {
+        playPauseButton.textContent = "Play";
+        cancelAnimationFrame(animationId);
+        drawAsciiFrame();
+      });
+
+      playPauseButton.addEventListener("click", async () => {
+        if (video.paused) await video.play();
+        else video.pause();
+      });
+
+      fullscreenButton.addEventListener("click", async () => {
+        if (!document.fullscreenElement) await document.documentElement.requestFullscreen();
+        else await document.exitFullscreen();
+      });
+
+      [qualityInput, fpsInput, fontSizeInput, brightnessInput, vibranceInput, densityInput].forEach((control) => {
+        control.addEventListener("input", () => {
+          syncControlLabels();
+          if (!video.paused) return;
+          drawAsciiFrame();
+          updateRenderStats();
+        });
+      });
+
+      window.addEventListener("resize", () => {
+        if (video.paused) {
+          drawAsciiFrame();
+          updateRenderStats();
+        }
+      });
+
+      document.addEventListener("dragover", (event) => {
+        event.preventDefault();
+      });
+
+      document.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const file = [...event.dataTransfer.files].find((item) => item.type.startsWith("video/"));
+        if (file) loadFile(file);
+      });
+
+      syncControlLabels();
+    })();
+  </script>
+</body>
+</html>
